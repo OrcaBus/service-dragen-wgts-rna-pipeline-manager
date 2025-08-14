@@ -1,4 +1,4 @@
-Template Service
+Dragen WGTS RNA Pipeline Manager
 ================================================================================
 
 - [Template Service](#template-service)
