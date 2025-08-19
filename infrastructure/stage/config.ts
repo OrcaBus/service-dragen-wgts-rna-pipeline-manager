@@ -30,6 +30,7 @@ import { StatefulApplicationStackConfig, StatelessApplicationStackConfig } from 
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 import { ICAV2_PROJECT_ID } from '@orcabus/platform-cdk-constructs/shared-config/icav2';
 import { substituteBucketConstants } from './utils';
+import { SsmParameterPaths, SsmParameterValues } from './ssm/interfaces';
 
 /**
  * Stateful stack properties for the workflow.
@@ -37,7 +38,7 @@ import { substituteBucketConstants } from './utils';
  * @param stage
  */
 
-export const getSsmParameterValues = (stage: StageName) => {
+export const getSsmParameterValues = (stage: StageName): SsmParameterValues => {
   return {
     // Values
     // Detail
@@ -64,7 +65,7 @@ export const getSsmParameterValues = (stage: StageName) => {
   };
 };
 
-export const getSsmParameterPaths = () => {
+export const getSsmParameterPaths = (): SsmParameterPaths => {
   return {
     // Top level prefix
     ssmRootPrefix: SSM_PARAMETER_PATH_PREFIX,
@@ -88,7 +89,8 @@ export const getSsmParameterPaths = () => {
     // Reference SSM Paths
     referenceSsmRootPrefix: SSM_PARAMETER_PATH_PREFIX_REFERENCE_PATHS_BY_WORKFLOW_VERSION,
     oraCompressionSsmRootPrefix: SSM_PARAMETER_PATH_PREFIX_ORA_REFERENCE_PATHS_BY_WORKFLOW_VERSION,
-    annotationSsmRootPrefix: SSM_PARAMETER_PATH_PREFIX_ANNOTATION_VERSIONS_BY_WORKFLOW_VERSION,
+    annotationVersionByWorkflowSsmRootPrefix:
+      SSM_PARAMETER_PATH_PREFIX_ANNOTATION_VERSIONS_BY_WORKFLOW_VERSION,
     annotationReferenceSsmRootPrefix:
       SSM_PARAMETER_PATH_PREFIX_ANNOTATION_REFERENCE_PATHS_BY_ANNOTATION_VERSION,
   };

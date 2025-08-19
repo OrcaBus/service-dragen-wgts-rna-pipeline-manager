@@ -26,7 +26,6 @@ export const DEFAULT_PAYLOAD_VERSION = '2025.08.05';
 // Yet to implement draft events into this service
 export const WORKFLOW_LOGS_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}logs/${WORKFLOW_NAME}/`;
 export const WORKFLOW_OUTPUT_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}analysis/${WORKFLOW_NAME}/`;
-export const WORKFLOW_CACHE_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}cache/${WORKFLOW_NAME}/`;
 
 /* We extend this every time we release a new version of the workflow */
 /* This is added into our SSM Parameter Store to allow us to map workflow versions to pipeline IDs */
