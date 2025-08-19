@@ -48,7 +48,7 @@ export interface SsmParameterPaths {
   // Reference defaults
   referenceSsmRootPrefix: string;
   oraCompressionSsmRootPrefix: string;
-  annotationSsmRootPrefix: string;
+  annotationVersionByWorkflowSsmRootPrefix: string;
   annotationReferenceSsmRootPrefix: string;
 }
 

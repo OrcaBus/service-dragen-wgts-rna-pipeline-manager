@@ -94,8 +94,21 @@ export function buildSsmParameters(scope: Construct, props: BuildSsmParameterPro
   for (const [key, value] of Object.entries(
     props.ssmParameterValues.annotationVersionByWorkflowVersionMap
   )) {
-    new ssm.StringParameter(scope, `annotation-by-version-${key}`, {
-      parameterName: path.join(props.ssmParameterPaths.annotationSsmRootPrefix, key),
+    new ssm.StringParameter(scope, `annotation-version-by-workflow-version-${key}`, {
+      parameterName: path.join(
+        props.ssmParameterPaths.annotationVersionByWorkflowSsmRootPrefix,
+        key
+      ),
+      stringValue: JSON.stringify(value),
+    });
+  }
+
+  // Annotation by workflow version map
+  for (const [key, value] of Object.entries(
+    props.ssmParameterValues.annotationReferenceByAnnotationVersionMap
+  )) {
+    new ssm.StringParameter(scope, `annotation-reference-path-by-annotation-version-${key}`, {
+      parameterName: path.join(props.ssmParameterPaths.annotationReferenceSsmRootPrefix, key),
       stringValue: JSON.stringify(value),
     });
   }
