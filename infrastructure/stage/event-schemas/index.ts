@@ -7,12 +7,6 @@ import { schemaNamesList, BuildSchemaProps } from './interfaces';
 import { Construct } from 'constructs';
 import { camelCaseToKebabCase } from '../utils';
 
-export function buildRegistry(scope: Construct, registryName: string): schemas.CfnRegistry {
-  return new schemas.CfnRegistry(scope, `${registryName}-registry`, {
-    registryName: registryName,
-  });
-}
-
 export function buildSchema(scope: Construct, props: BuildSchemaProps): schemas.CfnSchema {
   // Import the schema file from the schemas directory
   const schemaPath = path.join(
@@ -28,22 +22,19 @@ export function buildSchema(scope: Construct, props: BuildSchemaProps): schemas.
   });
 }
 
-export function buildSchemasAndRegistry(scope: Construct) {
-  // Build the registry
-  const registryObj = buildRegistry(scope, SCHEMA_REGISTRY_NAME);
-
-  // Add an ssm entry for the registry name
-  new ssm.StringParameter(scope, `${SCHEMA_REGISTRY_NAME}-ssm`, {
-    parameterName: path.join(SSM_SCHEMA_ROOT, 'registry'),
-    stringValue: <string>registryObj.registryName,
-  });
-
+export function buildSchemas(scope: Construct) {
   // Iterate over the schemas directory and create a schema for each file
   for (const schemaName of schemaNamesList) {
     const schemaObj = buildSchema(scope, {
-      registry: registryObj,
       schemaName: schemaName,
     });
+
+    // Add an ssm entry for the registry name
+    new ssm.StringParameter(scope, `${SCHEMA_REGISTRY_NAME}-ssm`, {
+      parameterName: path.join(SSM_SCHEMA_ROOT, 'registry'),
+      stringValue: <string>schemaObj.registryName,
+    });
+
     // And also a latest ssm parameter for the schema
     // Likely the one most commonly used
     new ssm.StringParameter(scope, `${schemaName}-ssm-latest`, {

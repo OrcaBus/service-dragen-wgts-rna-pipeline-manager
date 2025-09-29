@@ -31,6 +31,7 @@ export class StatelessApplicationStack extends cdk.Stack {
     const stateMachines = buildAllStepFunctions(this, {
       lambdaObjects: lambdas,
       eventBus: orcabusMainEventBus,
+      ssmParameterPaths: props.ssmParameterPaths,
       isNewWorkflowManagerDeployed: props.isNewWorkflowManagerDeployed,
     });
 

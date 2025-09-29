@@ -74,6 +74,175 @@ E.g. Manual tagging of git commits following Semantic Versioning (semver) guidel
 The service employs a fully automated CI/CD pipeline that automatically builds and releases all changes to the `main` code branch.
 
 
+#### Making your own draft events with BASH / JQ (dev)
+
+There may be circumstances where you wish to generate WRSC events manually, the below is a quick solution for
+generating a draft for a dragen rna dna workflow.
+
+The draft populator step function will also pull necessary fastq files out of archive.
+
+<details>
+
+<summary>Click to expand</summary>
+
+```shell
+# Globals
+EVENT_BUS_NAME="OrcaBusMain"
+DETAIL_TYPE="WorkflowRunUpdate"
+SOURCE="orcabus.manual"
+
+WORKFLOW_NAME="dragen-wgts-rna"
+WORKFLOW_VERSION="4.4.4"  # Name of the version were currently using
+CODE_VERSION="20d534e"  # Placeholder for now
+EXECUTION_ENGINE="ICA"
+
+PAYLOAD_VERSION="2025.09.25"
+
+# Glocals
+LIBRARY_ID="L2500568"
+
+# Functions
+get_hostname_from_ssm(){
+  aws ssm get-parameter \
+    --name "/hosted_zone/umccr/name" \
+    --output json | \
+  jq --raw-output \
+    '.Parameter.Value'
+}
+
+get_orcabus_token(){
+  aws secretsmanager get-secret-value \
+    --secret-id orcabus/token-service-jwt \
+    --output json \
+    --query SecretString | \
+  jq --raw-output \
+    'fromjson | .id_token'
+}
+
+get_pipeline_id_from_workflow_version(){
+  local workflow_version="$1"
+  aws ssm get-parameter \
+    --name "/orcabus/workflows/dragen-wgts-rna/pipeline-ids-by-workflow-version/${workflow_version}" \
+    --output json | \
+  jq --raw-output \
+    '.Parameter.Value'
+}
+
+get_library_obj_from_library_id(){
+  local library_id="$1"
+  curl --silent --fail --show-error --location \
+    --header "Authorization: Bearer $(get_orcabus_token)" \
+    --url "https://metadata.$(get_hostname_from_ssm)/api/v1/library?libraryId=${library_id}" | \
+  jq --raw-output \
+    '
+      .results[0] |
+      {
+        "libraryId": .libraryId,
+        "orcabusId": .orcabusId
+      }
+    '
+}
+
+generate_portal_run_id(){
+  echo "$(date -u +'%Y%m%d')$(openssl rand -hex 4)"
+}
+
+get_linked_libraries(){
+  local library_id="$1"
+
+  jq --null-input --compact-output --raw-output \
+    --argjson libraryObj "$(get_library_obj_from_library_id "${library_id}")" \
+    '
+      [
+          $libraryObj
+      ]
+    '
+}
+
+get_workflow(){
+  local workflow_name="$1"
+  local workflow_version="$2"
+  local execution_engine="$3"
+  local execution_engine_pipeline_id="$4"
+  local code_version="$5"
+  curl --silent --fail --show-error --location \
+    --request GET \
+    --get \
+    --header "Authorization: Bearer $(get_orcabus_token)" \
+    --url "https://workflow.$(get_hostname_from_ssm)/api/v1/workflow" \
+    --data "$( \
+      jq \
+       --null-input --compact-output --raw-output \
+       --arg workflowName "$workflow_name" \
+       --arg workflowVersion "$workflow_version" \
+       --arg codeVersion "$code_version" \
+       '
+         {
+            "name": $workflowName,
+            "version": $workflowVersion,
+            "codeVersion": $codeVersion
+         } |
+         to_entries |
+         map(
+           "\(.key)=\(.value)"
+         ) |
+         join("&")
+       ' \
+    )" | \
+  jq --compact-output --raw-output \
+    '
+      .results[0]
+    '
+}
+
+# Generate the event
+event_cli_json="$( \
+  jq --null-input --raw-output \
+    --arg eventBusName "$EVENT_BUS_NAME" \
+    --arg detailType "$DETAIL_TYPE" \
+    --arg source "$SOURCE" \
+    --argjson workflow "$(get_workflow \
+      "${WORKFLOW_NAME}" "${WORKFLOW_VERSION}" \
+      "${EXECUTION_ENGINE}" "$(get_pipeline_id_from_workflow_version "${WORKFLOW_VERSION}")" \
+      "${CODE_VERSION}"
+    )" \
+    --arg payloadVersion "$PAYLOAD_VERSION" \
+    --arg portalRunId "$(generate_portal_run_id)" \
+    --argjson libraries "$(get_linked_libraries "${LIBRARY_ID}")" \
+    '
+      {
+        # Standard fields for the event
+        "EventBusName": $eventBusName,
+        "DetailType": $detailType,
+        "Source": $source,
+        # Detail must be a JSON object in string format
+        "Detail": (
+          {
+            "status": "DRAFT",
+            "timestamp": (now | todateiso8601),
+            "workflow": $workflow,
+            "workflowRunName": ("umccr--automated--" + $workflow["name"] + "--" + ($workflow["version"] | gsub("\\."; "-")) + "--" + $portalRunId),
+            "portalRunId": $portalRunId,
+            "libraries": $libraries
+          } |
+          tojson
+        )
+      } |
+      # Now wrap into an "entry" for the CLI
+      {
+        "Entries": [
+          .
+        ]
+      }
+    ' \
+)"
+
+aws events put-events --no-cli-pager --cli-input-json "${event_cli_json}"
+```
+
+</details>
+
+
 Infrastructure & Deployment
 --------------------------------------------------------------------------------
 
@@ -132,6 +301,9 @@ OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusBeta/DeployStack (OrcaBus
 OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusGamma/DeployStack (OrcaBusGamma-DeployStack)
 OrcaBusStatelessServiceStack/DeploymentPipeline/OrcaBusProd/DeployStack (OrcaBusProd-DeployStack)
 ```
+
+
+###
 
 
 Development
