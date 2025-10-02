@@ -73,6 +73,9 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ANNOTATION_PATHS_MAP: Record<
 
 export const DEFAULT_WORKFLOW_INPUTS_BY_VERSION_MAP: Record<WorkflowVersionType, object> = {
   '4.4.4': {
+    alignmentOptions: {
+      rrnaFilterEnable: true,
+    },
     snvVariantCallerOptions: {
       enableVcfCompression: true,
       enableVcfIndexing: true,
