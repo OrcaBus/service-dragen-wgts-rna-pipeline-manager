@@ -53,8 +53,6 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
     Add in SSM permissions for the lambda function
     */
   if (lambdaRequirements.needsSsmParametersAccess) {
-    // FIXME add env vars here too
-
     lambdaFunction.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['ssm:GetParameter'],

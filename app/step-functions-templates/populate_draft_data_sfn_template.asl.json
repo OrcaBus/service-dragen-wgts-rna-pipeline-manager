@@ -560,7 +560,7 @@
             "Get default annotation version": {
               "Type": "Task",
               "Arguments": {
-                "Name": "{%'${__default_annotation_version_by_workflow_version_ssm_parameter_prefix__}/' & $draftDetail.workflow.version %}"
+                "Name": "{% '${__default_annotation_version_by_workflow_version_ssm_parameter_prefix__}/' & $draftDetail.workflow.version %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
               "Next": "Annotation File Path",
