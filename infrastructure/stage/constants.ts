@@ -7,6 +7,7 @@ import {
   Reference,
   WorkflowVersionType,
 } from './interfaces';
+import { DATA_SCHEMA_REGISTRY_NAME } from '@orcabus/platform-cdk-constructs/shared-config/event-bridge';
 
 export const APP_ROOT = path.join(__dirname, '../../app');
 export const LAMBDA_DIR = path.join(APP_ROOT, 'lambdas');
@@ -33,8 +34,8 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ICAV2_PIPELINE_ID_MAP: Record<
   WorkflowVersionType,
   string
 > = {
-  // At the moment we are running manual deployments of the workflow, so only a draft pipeline at the moment
-  '4.4.4': '165bbb03-fb30-4c37-b22b-6941cbc56e27',
+  // FIXME - custom release
+  '4.4.4': 'eae5f0b1-e83f-41ce-b8cd-574a34c867d5',
 };
 
 export const WORKFLOW_VERSION_TO_DEFAULT_REFERENCE_PATHS_MAP: Record<
@@ -45,7 +46,7 @@ export const WORKFLOW_VERSION_TO_DEFAULT_REFERENCE_PATHS_MAP: Record<
     name: 'hg38',
     structure: 'linear',
     tarball:
-      's3://pipeline-prod-cache-503977275616-ap-southeast-2/byob-icav2/reference-data/dragen-hash-tables/v11-r5/hg38-alt_masked-cnv-hla-methyl_cg-methylated_combined/hg38-alt_masked.cnv.hla.methyl_cg.methylated_combined.rna-11-r5.0-1.tar.gz',
+      's3://reference-data-503977275616-ap-southeast-2/refdata/dragen-hash-tables/v11-r5/hg38-alt_masked-cnv-hla-methyl_cg-methylated_combined/hg38-alt_masked.cnv.hla.methyl_cg.methylated_combined.rna-11-r5.0-1.tar.gz',
   },
 };
 
@@ -54,11 +55,13 @@ export const ORA_VERSION_TO_DEFAULT_ORA_REFERENCE_PATHS_MAP: Record<
   string
 > = {
   '2.7.0':
-    's3://pipeline-prod-cache-503977275616-ap-southeast-2/byob-icav2/reference-data/dragen-ora/v2/ora_reference_v2.tar.gz',
+    's3://reference-data-503977275616-ap-southeast-2/refdata/dragen-ora/v2/ora_reference_v2.tar.gz',
 };
 
+export const DEFAULT_ORA_VERSION: OraReferenceVersionType = '2.7.0';
+
 export const ANNOTATION_VERSION_TO_ANNOTATION_PATHS_MAP: Record<AnnotationVersionType, string> = {
-  '44': 's3://pipeline-prod-cache-503977275616-ap-southeast-2/byob-icav2/reference-data/gencode/hg38/v44/gencode.v44.annotation.gtf.gz',
+  '44': 's3://reference-data-503977275616-ap-southeast-2/refdata/gencode/hg38/v44/gencode.v44.annotation.gtf.gz',
 };
 
 export const WORKFLOW_VERSION_TO_DEFAULT_ANNOTATION_PATHS_MAP: Record<
@@ -70,6 +73,9 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ANNOTATION_PATHS_MAP: Record<
 
 export const DEFAULT_WORKFLOW_INPUTS_BY_VERSION_MAP: Record<WorkflowVersionType, object> = {
   '4.4.4': {
+    alignmentOptions: {
+      rrnaFilterEnable: true,
+    },
     snvVariantCallerOptions: {
       enableVcfCompression: true,
       enableVcfIndexing: true,
@@ -143,6 +149,7 @@ export const SSM_PARAMETER_PATH_PREFIX_ANNOTATION_REFERENCE_PATHS_BY_ANNOTATION_
 export const EVENT_BUS_NAME = 'OrcaBusMain';
 export const EVENT_SOURCE = 'orcabus.dragenwgtsrna';
 export const WORKFLOW_RUN_STATE_CHANGE_DETAIL_TYPE = 'WorkflowRunStateChange';
+export const WORKFLOW_RUN_UPDATE_DETAIL_TYPE = 'WorkflowRunUpdate';
 export const ICAV2_WES_REQUEST_DETAIL_TYPE = 'Icav2WesRequest';
 export const ICAV2_WES_STATE_CHANGE_DETAIL_TYPE = 'Icav2WesAnalysisStateChange';
 
@@ -150,16 +157,16 @@ export const WORKFLOW_MANAGER_EVENT_SOURCE = 'orcabus.workflowmanager';
 export const ICAV2_WES_EVENT_SOURCE = 'orcabus.icav2wesmanager';
 
 // Yet to implement draft events into this service
-// export const FASTQ_SYNC_DETAIL_TYPE = 'FastqSync';
+export const FASTQ_SYNC_DETAIL_TYPE = 'FastqSync';
 
 /* Event rule constants */
 // Yet to implement draft events into this service
-// export const DRAFT_STATUS = 'DRAFT';
+export const DRAFT_STATUS = 'DRAFT';
 export const READY_STATUS = 'READY';
 
 /* Schema constants */
 // Yet to implement draft events into this service
-export const SCHEMA_REGISTRY_NAME = EVENT_SOURCE;
+export const SCHEMA_REGISTRY_NAME = DATA_SCHEMA_REGISTRY_NAME;
 export const SSM_SCHEMA_ROOT = path.join(SSM_PARAMETER_PATH_PREFIX, 'schemas');
 
 /* Future proofing */

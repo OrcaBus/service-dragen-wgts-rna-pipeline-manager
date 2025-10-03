@@ -171,7 +171,7 @@ def handler(event, context):
 
     # Prepare the WRSC Event payload
     return {
-        "workflowRunStateChangeEvent": {
+        "workflowRunUpdateEvent": {
             # New status
             "status": icav2_wes_event['status'],
             # Current time

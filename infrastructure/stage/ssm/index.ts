@@ -99,7 +99,7 @@ export function buildSsmParameters(scope: Construct, props: BuildSsmParameterPro
         props.ssmParameterPaths.annotationVersionByWorkflowSsmRootPrefix,
         key
       ),
-      stringValue: JSON.stringify(value),
+      stringValue: value,
     });
   }
 
@@ -109,7 +109,7 @@ export function buildSsmParameters(scope: Construct, props: BuildSsmParameterPro
   )) {
     new ssm.StringParameter(scope, `annotation-reference-path-by-annotation-version-${key}`, {
       parameterName: path.join(props.ssmParameterPaths.annotationReferenceSsmRootPrefix, key),
-      stringValue: JSON.stringify(value),
+      stringValue: value,
     });
   }
 

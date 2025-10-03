@@ -2,17 +2,26 @@ import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 
 import { LambdaName, LambdaObject } from '../lambda/interfaces';
+import { SsmParameterPaths } from '../ssm/interfaces';
 
 /**
  * Step Function Interfaces
  */
 export type StateMachineName =
+  // Draft to Valid Draft
+  | 'populateDraftData'
+  // Valid Draft to Ready
+  | 'validateDraftDataAndPutReadyEvent'
   // Ready-to-Submitted
   | 'readyEventToIcav2WesRequestEvent'
   // Post-submission event conversion
   | 'icav2WesAscEventToWorkflowRscEvent';
 
 export const stateMachineNameList: StateMachineName[] = [
+  // Populate Draft Data
+  'populateDraftData',
+  // Valid Draft to Ready
+  'validateDraftDataAndPutReadyEvent',
   // Ready-to-Submitted
   'readyEventToIcav2WesRequestEvent',
   // Post-submission event conversion
@@ -23,6 +32,9 @@ export const stateMachineNameList: StateMachineName[] = [
 export interface StepFunctionRequirements {
   // Event stuff
   needsEventPutPermission?: boolean;
+
+  // SSM Stuff
+  needsSsmParameterStoreAccess?: boolean;
 }
 
 export interface StepFunctionInput {
@@ -32,6 +44,7 @@ export interface StepFunctionInput {
 export interface BuildStepFunctionProps extends StepFunctionInput {
   lambdaObjects: LambdaObject[];
   eventBus: IEventBus;
+  ssmParameterPaths: SsmParameterPaths;
   isNewWorkflowManagerDeployed: boolean;
 }
 
@@ -44,6 +57,13 @@ export type WireUpPermissionsProps = BuildStepFunctionProps & StepFunctionObject
 export type BuildStepFunctionsProps = Omit<BuildStepFunctionProps, 'stateMachineName'>;
 
 export const stepFunctionsRequirementsMap: Record<StateMachineName, StepFunctionRequirements> = {
+  populateDraftData: {
+    needsEventPutPermission: true,
+    needsSsmParameterStoreAccess: true,
+  },
+  validateDraftDataAndPutReadyEvent: {
+    needsEventPutPermission: true,
+  },
   readyEventToIcav2WesRequestEvent: {
     needsEventPutPermission: true,
   },
@@ -53,6 +73,17 @@ export const stepFunctionsRequirementsMap: Record<StateMachineName, StepFunction
 };
 
 export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = {
+  populateDraftData: [
+    'validateDraftCompleteSchema',
+    'getLibraries',
+    'getMetadataTags',
+    'getFastqListRowsFromRgidList',
+    'getFastqRgidsFromLibraryId',
+    'getFastqIdListFromRgidList',
+    'getQcSummaryStatsFromRgidList',
+    'checkNtsmInternal',
+  ],
+  validateDraftDataAndPutReadyEvent: ['validateDraftCompleteSchema'],
   readyEventToIcav2WesRequestEvent: ['convertReadyEventInputsToIcav2WesEventInputs'],
-  icav2WesAscEventToWorkflowRscEvent: ['convertIcav2WesEventToWrscEvent'],
+  icav2WesAscEventToWorkflowRscEvent: ['convertIcav2WesEventToWruEvent'],
 };

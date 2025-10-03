@@ -1,0 +1,717 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Get draft payload var",
+  "States": {
+    "Get draft payload var": {
+      "Type": "Pass",
+      "Assign": {
+        "draftDetail": "{% $states.input %}",
+        "draftLibrariesList": "{% $states.input.libraries %}",
+        "draftPayload": "{% (\n  $states.input.payload ? \n  $states.input.payload : {\n    \"version\": \"${__default_payload_version__}\"\n  }\n) %}",
+        "draftData": "{% $states.input.payload.data ? $states.input.payload.data : {} %}",
+        "draftEngineParameters": "{% $states.input.payload.data.engineParameters ? $states.input.payload.data.engineParameters : {} %}",
+        "draftTags": "{% $states.input.payload.data.tags ? $states.input.payload.data.tags : {} %}",
+        "draftInputs": "{% $states.input.payload.data.inputs ? $states.input.payload.data.inputs : {} %}"
+      },
+      "Next": "Validate draft data"
+    },
+    "Validate draft data": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${__validate_draft_complete_schema_lambda_function_arn__}",
+        "Payload": "{% $draftData %}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Output": {
+        "isValid": "{% $states.result.Payload.isValid %}"
+      },
+      "Next": "Draft data is valid"
+    },
+    "Draft data is valid": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Success",
+          "Condition": "{% $states.input.isValid %}",
+          "Comment": "Is a valid data payload, skip"
+        }
+      ],
+      "Default": "Do we have matching libraries"
+    },
+    "Success": {
+      "Type": "Succeed"
+    },
+    "Do we have matching libraries": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Comment": "All libraries in tags",
+          "Next": "Get Engine parameters",
+          "Condition": "{% /* https://try.jsonata.org/XDJvywd0c */\n/* Compare the draft tags to the libraries */\n/* Get the draft tags */\n(\n    $draftTags.(libraryId)\n)\n=\n/* Get the draft detail library */ \n(\n    $draftLibrariesList.(libraryId)\n) %}"
+        }
+      ],
+      "Default": "Get primitive tags from linked libraries"
+    },
+    "Get primitive tags from linked libraries": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${__get_libraries_lambda_function_arn__}",
+        "Payload": {
+          "libraries": "{% $draftLibrariesList %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "Get Engine parameters",
+      "Assign": {
+        "draftTags": "{% $merge(\n  [\n    $states.result.Payload,\n    $draftTags\n  ]\n) %}"
+      }
+    },
+    "Get Engine parameters": {
+      "Type": "Parallel",
+      "Next": "Get tags",
+      "Branches": [
+        {
+          "StartAt": "Has Project ID",
+          "States": {
+            "Has Project ID": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use provided project id",
+                  "Condition": "{% $draftEngineParameters.projectId ? true : false %}",
+                  "Comment": "Project ID Provided"
+                }
+              ],
+              "Default": "Get Default Project Id"
+            },
+            "Use provided project id": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "projectId": "{% $draftEngineParameters.projectId %}"
+              }
+            },
+            "Get Default Project Id": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "${__default_project_id_ssm_parameter_name__}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "projectId": "{% $states.result.Parameter.Value %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Has Pipeline ID",
+          "States": {
+            "Has Pipeline ID": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use provided pipeline id",
+                  "Condition": "{% $draftEngineParameters.pipelineId ? true : false %}",
+                  "Comment": "Pipeline ID Provided"
+                }
+              ],
+              "Default": "Get default pipeline id"
+            },
+            "Use provided pipeline id": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "pipelineId": "{% $draftEngineParameters.pipelineId %}"
+              }
+            },
+            "Get default pipeline id": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__workflow_id_to_pipeline_id_ssm_parameter_path_prefix__}/' & $draftDetail.workflow.version %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "pipelineId": "{% $states.result.Parameter.Value %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Has Output URI",
+          "States": {
+            "Has Output URI": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use provided output uri",
+                  "Condition": "{% $draftEngineParameters.outputUri ? true : false %}",
+                  "Comment": "Output URI Provided"
+                }
+              ],
+              "Default": "Get default output uri prefix"
+            },
+            "Use provided output uri": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "outputUri": "{% $draftEngineParameters.outputUri %}"
+              }
+            },
+            "Get default output uri prefix": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "${__default_output_uri_prefix_ssm_parameter_name__}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "outputUri": "{% $states.result.Parameter.Value & $draftDetail.portalRunId & '/' %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Has Logs URI",
+          "States": {
+            "Has Logs URI": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use provided logs uri",
+                  "Condition": "{% $draftEngineParameters.logsUri ? true : false %}",
+                  "Comment": "Logs URI Provided"
+                }
+              ],
+              "Default": "Get default logs uri prefix"
+            },
+            "Use provided logs uri": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "logsUri": "{% $draftEngineParameters.logsUri %}"
+              }
+            },
+            "Get default logs uri prefix": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "${__default_logs_uri_prefix_ssm_parameter_name__}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "logsUri": "{% $states.result.Parameter.Value & $draftDetail.portalRunId & '/' %}"
+              }
+            }
+          }
+        }
+      ],
+      "Assign": {
+        "engineParameters": "{% /* https://try.jsonata.org/6nUH8BUBr */\n$merge($states.result) %}"
+      }
+    },
+    "Get tags": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "Has fastqRgidList",
+          "States": {
+            "Has fastqRgidList": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Set fastq rgid list",
+                  "Condition": "{% $draftTags.fastqRgidList ? true : false %}"
+                }
+              ],
+              "Default": "Get fastq list rgids from libraries"
+            },
+            "Set fastq rgid list": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "fastqRgidList": "{% $draftTags.fastqRgidList %}"
+              }
+            },
+            "Get fastq list rgids from libraries": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Arguments": {
+                "FunctionName": "${__get_fastq_rgids_from_library_id_lambda_function_arn__}",
+                "Payload": {
+                  "libraryId": "{% $draftTags.libraryId %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true,
+              "Output": {
+                "fastqRgidList": "{% $states.result.Payload.fastqRgidList %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Get subject and individual id tags",
+          "States": {
+            "Get subject and individual id tags": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Arguments": {
+                "FunctionName": "${__get_metadata_tags_lambda_function_arn__}",
+                "Payload": {
+                  "libraryId": "{% $draftTags.libraryId %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true,
+              "Output": {
+                "subjectId": "{% $states.result.Payload.libraryObj.subject.subjectId %}",
+                "individualId": "{% $states.result.Payload.libraryObj.subject.individualSet[0].individualId %}"
+              }
+            }
+          }
+        }
+      ],
+      "Next": "Get Inputs",
+      "Assign": {
+        "tags": "{% /* https://try.jsonata.org/05K2l3beH */\n/* List to merge together */\n[\n    /* Start with the draft tags */\n    $draftTags,\n    /* Merge the results list together */\n    $merge($states.result)\n] \n/* Then merge these initial tags with states.result  */\n~> $merge\n/* Remove any keys with values */\n~> $sift(function($v, $k){$v != null}) %}"
+      }
+    },
+    "Get Inputs": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "Has Sequence Data",
+          "States": {
+            "Has Sequence Data": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Keep Original sequence data",
+                  "Condition": "{% $draftInputs.sequenceData ? true : false %}"
+                }
+              ],
+              "Default": "Get fastq ids from rgid list"
+            },
+            "Keep Original sequence data": {
+              "Type": "Pass",
+              "End": true,
+              "Output": "{% $draftInputs.sequenceData %}"
+            },
+            "Get fastq ids from rgid list": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Output": {
+                "fastqIdList": "{% $states.result.Payload.fastqIdList %}"
+              },
+              "Arguments": {
+                "FunctionName": "${__get_fastq_id_list_from_rgid_list_lambda_function_arn__}",
+                "Payload": {
+                  "fastqRgidList": "{% $tags.fastqRgidList %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "Next": "Wait for fastq"
+            },
+            "Wait for fastq": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::events:putEvents.waitForTaskToken",
+              "Arguments": {
+                "Entries": [
+                  {
+                    "Detail": {
+                      "taskToken": "{% $states.context.Task.Token %}",
+                      "payload": {
+                        "fastqIdList": "{% $states.input.fastqIdList %}",
+                        "requirements": {
+                          "hasQc": true,
+                          "hasFingerprint": true,
+                          "hasActiveReadSet": true
+                        },
+                        "forceUnarchiving": true
+                      }
+                    },
+                    "DetailType": "${__fastq_sync_detail_type__}",
+                    "EventBusName": "${__event_bus_name__}",
+                    "Source": "${__stack_source__}"
+                  }
+                ]
+              },
+              "Next": "Get fastq list rows from rgid list"
+            },
+            "Get fastq list rows from rgid list": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Arguments": {
+                "FunctionName": "${__get_fastq_list_rows_from_rgid_list_lambda_function_arn__}",
+                "Payload": {
+                  "fastqRgidList": "{% $tags.fastqRgidList %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true,
+              "Output": {
+                "fastqListRows": "{% $states.result.Payload.fastqListRows %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Get default input params",
+          "States": {
+            "Get default input params": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__default_inputs_ssm_parameter_prefix__}/' & $draftDetail.workflow.version %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Output": "{% $parse($states.result.Parameter.Value) %}",
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "Add reference data",
+      "Assign": {
+        "inputs": "{% /* https://try.jsonata.org/ZAkTIin-h */\n[\n  /* Get the default input params */\n  $states.result[1],\n  /* Then add in the draft inputs */\n  $draftInputs,\n  /* Combine the states results */\n  {\n      \"sequenceData\": $states.result[0]\n  },\n  /* Add in the required sampleName */\n  /* These must match the value of the library id */\n  {\n    \"sampleName\": $draftTags.libraryId\n  }\n]\n/* Combine old and new */\n~> $merge\n/* Sift out inputs with null values */\n~> $sift(function($v, $k){ $v != null }) %}"
+      }
+    },
+    "Add reference data": {
+      "Type": "Parallel",
+      "Next": "Add qc tags",
+      "Branches": [
+        {
+          "StartAt": "Reference Provided",
+          "States": {
+            "Reference Provided": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use provided reference",
+                  "Condition": "{% $draftInputs.reference ? true : false %}"
+                }
+              ],
+              "Default": "Get default germline reference"
+            },
+            "Use provided reference": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "reference": "{% $draftInputs.reference %}"
+              }
+            },
+            "Get default germline reference": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__default_reference_ssm_parameter_prefix__}/' & $draftDetail.workflow.version %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "reference": "{% $parse($states.result.Parameter.Value) %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "Ora reference provided",
+          "States": {
+            "Ora reference provided": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use ORA reference provided",
+                  "Condition": "{% $draftInputs.oraReference ? true : false %}",
+                  "Comment": "ORA Reference Provided"
+                }
+              ],
+              "Default": "Fastqs have ora"
+            },
+            "Use ORA reference provided": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "oraReference": "{% $draftInputs.oraReference %}"
+              }
+            },
+            "Fastqs have ora": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Comment": "Get default reference",
+                  "Next": "Get Default ORA Reference",
+                  "Condition": "{% /* https://try.jsonata.org/Un-e-H6Jw */\n/* Get fastq list rows */\n/* Select only the read uris from each object */\n/* And then convert to a list */\n$inputs.sequenceData.fastqListRows.{\n    \"r1\": $.read1FileUri,\n    \"r2\": $.read2FileUri\n}.*\n/* Filter to those that endwith \"ora\" */\n~> $map(function($v){\n    $v ~> $contains(/.ora$/) ? 1 : 0\n}) \n/* Use sum to count the number of true values \n/* Return true if so otherwise false */ \n~> $sum > 0 %}"
+                }
+              ],
+              "Default": "No ora reference needed"
+            },
+            "Get Default ORA Reference": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__default_ora_reference_ssm_parameter_prefix__}/' & '${__default_ora_version__}' %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "oraReference": "{% $states.result.Parameter.Value %}"
+              }
+            },
+            "No ora reference needed": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Annotation Provided",
+          "States": {
+            "Annotation Provided": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Next": "Use Annotation Provided",
+                  "Condition": "{% $draftInputs.annotationFile ? true : false %}",
+                  "Comment": "Annotation Reference provided"
+                }
+              ],
+              "Default": "Get default annotation version"
+            },
+            "Get default annotation version": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__default_annotation_version_by_workflow_version_ssm_parameter_prefix__}/' & $draftDetail.workflow.version %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Next": "Annotation File Path",
+              "Output": {
+                "defaultAnnotationVersion": "{% $states.result.Parameter.Value %}"
+              }
+            },
+            "Use Annotation Provided": {
+              "Type": "Pass",
+              "End": true,
+              "Output": {
+                "annotationFile": "{% $draftInputs.annotationFile %}"
+              }
+            },
+            "Annotation File Path": {
+              "Type": "Task",
+              "Arguments": {
+                "Name": "{% '${__default_annotation_path_by_annotation_version_ssm_parameter_prefix__}/' & $states.input.defaultAnnotationVersion %}"
+              },
+              "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "End": true,
+              "Output": {
+                "annotationFile": "{% $states.result.Parameter.Value %}"
+              }
+            }
+          }
+        }
+      ],
+      "Assign": {
+        "inputs": "{% [\n  /* Start with the draft inputs + sequence data inputs */\n  $inputs, \n  /* Combine the states results */\n  $merge($states.result)\n] \n/* Merge Old and new */\n~> $merge\n/* Sift out inputs with null values */\n~> $sift(function($v, $k){ $v != null }) %}"
+      }
+    },
+    "Add qc tags": {
+      "Type": "Parallel",
+      "Next": "New Workflow Manager Deployed",
+      "Branches": [
+        {
+          "StartAt": "Get coverage and dup-frac estimates",
+          "States": {
+            "Get coverage and dup-frac estimates": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Arguments": {
+                "FunctionName": "${__get_qc_summary_stats_from_rgid_list_lambda_function_arn__}",
+                "Payload": {
+                  "fastqRgidList": "{% $tags.fastqRgidList %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true,
+              "Output": {
+                "preLaunchCoverageEst": "{% $states.result.Payload.coverageSum %}",
+                "preLaunchDupFracEst": "{% $states.result.Payload.dupFracAvg %}",
+                "preLaunchInsertSizeEst": "{% $states.result.Payload.insertSizeAvg %}"
+              }
+            }
+          }
+        },
+        {
+          "StartAt": "check ntsm passing",
+          "States": {
+            "check ntsm passing": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "Arguments": {
+                "FunctionName": "${__check_ntsm_internal_lambda_function_arn__}",
+                "Payload": {
+                  "fastqRgidList": "{% $tags.fastqRgidList %}"
+                }
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException",
+                    "States.TaskFailed"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "JitterStrategy": "FULL"
+                }
+              ],
+              "End": true,
+              "Output": {
+                "ntsmInternalPassing": "{% $states.result.Payload.related %}"
+              }
+            }
+          }
+        }
+      ],
+      "Assign": {
+        "tags": "{% /* https://try.jsonata.org/05K2l3beH */\n/* List to merge together */\n[\n    /* Start with the tags */\n    $tags,\n    /* Merge the results list together */\n    $merge($states.result)\n] \n/* Then merge these initial tags with states.result  */\n~> $merge\n/* Remove any keys with values */\n~> $sift(function($v, $k){$v != null}) %}"
+      }
+    },
+    "New Workflow Manager Deployed": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "Put DRAFT event",
+          "Condition": "{% ${__new_workflow_manager_is_deployed__} %}",
+          "Comment": "New Workflow Manager is Deployed"
+        }
+      ],
+      "Default": "Push DRAFT Event (legacy)"
+    },
+    "Put DRAFT event": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents",
+      "Arguments": {
+        "Entries": [
+          {
+            "Detail": "{% {\n    \"portalRunId\": $draftDetail.portalRunId,\n    \"workflowRunName\": $draftDetail.workflowRunName,\n    \"workflow\": $draftDetail.workflow,\n    \"status\": \"${__draft_event_status__}\",\n    \"timestamp\": $states.context.State.EnteredTime,\n    \"libraries\": $draftDetail.libraries,\n    \"payload\": (\n      $merge([\n        $draftPayload,\n        {\n          \"refId\": null,\n          \"data\": {\n            \"inputs\": $inputs,\n            \"engineParameters\": $engineParameters,\n            \"tags\": $tags\n          }\n        }\n      ])\n      /* Remove null inputs like refId */\n      ~> $sift(function($v, $k){$v != null})\n    )\n  } %}",
+            "DetailType": "${__workflow_run_update_event_detail_type__}",
+            "EventBusName": "${__event_bus_name__}",
+            "Source": "${__stack_source__}"
+          }
+        ]
+      },
+      "End": true
+    },
+    "Push DRAFT Event (legacy)": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::events:putEvents",
+      "Arguments": {
+        "Entries": [
+          {
+            "Detail": "{% /* https://try.jsonata.org/r0aCmiix- */\n$merge([\n  $draftDetail,\n  {\n    \"status\": \"${__draft_event_status__}\",\n    \"timestamp\": $states.context.State.EnteredTime,\n    \"payload\": (\n      $merge([\n        $draftPayload,\n        {\n          \"refId\": null,\n          \"data\": {\n            \"inputs\": $inputs,\n            \"engineParameters\": $engineParameters,\n            \"tags\": $tags\n          }\n        }\n      ])\n      /* Remove null inputs like refId */\n      ~> $sift(function($v, $k){$v != null})\n    )\n  }\n]) ~>\n/* Renamed libraries to linkedLibraries using the transform method */\n| $ | {\"linkedLibraries\": libraries}, [\"libraries\"] | ~>\n/* Renamed workflowName and workflowVersion using the transform method */\n| $ | {\"workflowName\": workflow.name, \"workflowVersion\": workflow.version}, [\"workflow\"] | %}",
+            "DetailType": "${__workflow_run_state_change_event_detail_type__}",
+            "EventBusName": "${__event_bus_name__}",
+            "Source": "${__stack_source__}"
+          }
+        ]
+      },
+      "End": true
+    }
+  },
+  "QueryLanguage": "JSONata"
+}
