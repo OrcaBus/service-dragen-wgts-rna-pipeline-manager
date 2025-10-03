@@ -578,7 +578,7 @@
             "Annotation File Path": {
               "Type": "Task",
               "Arguments": {
-                "Name": "{%'${__default_annotation_path_by_annotation_version_ssm_parameter_prefix__}/' & $states.input.defaultAnnotationVersion %}"
+                "Name": "{% '${__default_annotation_path_by_annotation_version_ssm_parameter_prefix__}/' & $states.input.defaultAnnotationVersion %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
               "End": true,
