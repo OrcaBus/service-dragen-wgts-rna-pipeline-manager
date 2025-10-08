@@ -34,8 +34,8 @@ export const WORKFLOW_VERSION_TO_DEFAULT_ICAV2_PIPELINE_ID_MAP: Record<
   WorkflowVersionType,
   string
 > = {
-  // FIXME - custom release
-  '4.4.4': 'eae5f0b1-e83f-41ce-b8cd-574a34c867d5',
+  // https://github.com/umccr/cwl-ica/releases/tag/dragen-wgts-rna-pipeline%2F4.4.4__20251005025030
+  '4.4.4': '079d5aa9-664c-472d-9baf-1e6a6c542401',
 };
 
 export const WORKFLOW_VERSION_TO_DEFAULT_REFERENCE_PATHS_MAP: Record<
