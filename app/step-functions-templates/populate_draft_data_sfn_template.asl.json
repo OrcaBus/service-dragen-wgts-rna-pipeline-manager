@@ -140,7 +140,7 @@
               "Choices": [
                 {
                   "Next": "Use provided pipeline id",
-                  "Condition": "{% $draftEngineParameters.pipelineId ? true : false %}",
+                  "Condition": "{% ($draftEngineParameters.pipelineId ? $draftEngineParameters.pipelineId : $draftDetail.workflow.executionEnginePipelineId ) ? true : false %}",
                   "Comment": "Pipeline ID Provided"
                 }
               ],
@@ -150,7 +150,7 @@
               "Type": "Pass",
               "End": true,
               "Output": {
-                "pipelineId": "{% $draftEngineParameters.pipelineId %}"
+                "pipelineId": "{% $draftEngineParameters.pipelineId ? $draftEngineParameters.pipelineId : $draftDetail.workflow.executionEnginePipelineId %}"
               }
             },
             "Get default pipeline id": {
