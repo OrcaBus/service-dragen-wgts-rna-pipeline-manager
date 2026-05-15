@@ -1,13 +1,17 @@
 /* Directory constants */
 import path from 'path';
-import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 import {
   AnnotationVersionType,
   OraReferenceVersionType,
+  PayloadVersionType,
   Reference,
   WorkflowVersionType,
 } from './interfaces';
 import { DATA_SCHEMA_REGISTRY_NAME } from '@orcabus/platform-cdk-constructs/shared-config/event-bridge';
+import {
+  REFERENCE_DATA_BUCKET,
+  TEST_DATA_BUCKET,
+} from '@orcabus/platform-cdk-constructs/shared-config/s3';
 
 export const APP_ROOT = path.join(__dirname, '../../app');
 export const LAMBDA_DIR = path.join(APP_ROOT, 'lambdas');
@@ -17,14 +21,11 @@ export const EVENT_SCHEMAS_DIR = path.join(APP_ROOT, 'event-schemas');
 /* Workflow constants */
 export const WORKFLOW_NAME = 'dragen-wgts-rna';
 
-// Yet to implement draft events into this service
-// However, because this workflow has the same workflow name as the
-// existing production workflow, we need to filter on the payload version
-// to prevent the wrong service from being triggered
+// Default workflow and payload versions
 export const DEFAULT_WORKFLOW_VERSION: WorkflowVersionType = '4.4.4';
-export const DEFAULT_PAYLOAD_VERSION = '2025.08.05';
+export const DEFAULT_PAYLOAD_VERSION: PayloadVersionType = '2025.08.05';
 
-// Yet to implement draft events into this service
+// Default logs and output prefixes
 export const WORKFLOW_LOGS_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}logs/${WORKFLOW_NAME}/`;
 export const WORKFLOW_OUTPUT_PREFIX = `s3://{__CACHE_BUCKET__}/{__CACHE_PREFIX__}analysis/${WORKFLOW_NAME}/`;
 
@@ -156,25 +157,20 @@ export const ICAV2_WES_STATE_CHANGE_DETAIL_TYPE = 'Icav2WesAnalysisStateChange';
 export const WORKFLOW_MANAGER_EVENT_SOURCE = 'orcabus.workflowmanager';
 export const ICAV2_WES_EVENT_SOURCE = 'orcabus.icav2wesmanager';
 
-// Yet to implement draft events into this service
+// Fastq Sync Service detail type
 export const FASTQ_SYNC_DETAIL_TYPE = 'FastqSync';
 
 /* Event rule constants */
-// Yet to implement draft events into this service
 export const DRAFT_STATUS = 'DRAFT';
 export const READY_STATUS = 'READY';
 
 /* Schema constants */
-// Yet to implement draft events into this service
 export const SCHEMA_REGISTRY_NAME = DATA_SCHEMA_REGISTRY_NAME;
 export const SSM_SCHEMA_ROOT = path.join(SSM_PARAMETER_PATH_PREFIX, 'schemas');
 
-/* Future proofing */
-export const NEW_WORKFLOW_MANAGER_IS_DEPLOYED: Record<StageName, boolean> = {
-  BETA: true,
-  GAMMA: true,
-  PROD: true,
-};
-
 // Used to group event rules and step functions
 export const STACK_PREFIX = 'orca-dragen-wgts-rna';
+
+/* Buckets */
+export const TEST_DATA_BUCKET_NAME = TEST_DATA_BUCKET;
+export const REF_DATA_BUCKET_NAME = REFERENCE_DATA_BUCKET;

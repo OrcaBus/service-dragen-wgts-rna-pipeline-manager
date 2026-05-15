@@ -6,10 +6,13 @@ import { buildAllStepFunctions } from './step-functions';
 import { StatelessApplicationStackConfig } from './interfaces';
 import { buildAllEventRules } from './event-rules';
 import { buildAllEventBridgeTargets } from './event-targets';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 export type StatelessApplicationStackProps = cdk.StackProps & StatelessApplicationStackConfig;
 
 export class StatelessApplicationStack extends cdk.Stack {
+  public readonly stageName: StageName;
+
   constructor(scope: Construct, id: string, props: StatelessApplicationStackProps) {
     super(scope, id, props);
 
@@ -17,6 +20,9 @@ export class StatelessApplicationStack extends cdk.Stack {
      * Dragen WGTS RNA Stack
      * Deploys the Dragen WGTS RNA orchestration services
      */
+    // Set the stage name
+    this.stageName = props.stageName;
+
     // Get the event bus as a construct
     const orcabusMainEventBus = events.EventBus.fromEventBusName(
       this,
@@ -25,14 +31,16 @@ export class StatelessApplicationStack extends cdk.Stack {
     );
 
     // Build the lambdas
-    const lambdas = buildAllLambdas(this);
+    const lambdas = buildAllLambdas(this, {
+      testDataBucketName: props.testDataBucketName,
+      refDataBucketName: props.refDataBucketName,
+    });
 
     // Build the state machines
     const stateMachines = buildAllStepFunctions(this, {
       lambdaObjects: lambdas,
       eventBus: orcabusMainEventBus,
       ssmParameterPaths: props.ssmParameterPaths,
-      isNewWorkflowManagerDeployed: props.isNewWorkflowManagerDeployed,
     });
 
     // Add event rules

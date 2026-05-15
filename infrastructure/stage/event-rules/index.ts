@@ -15,7 +15,6 @@ import { Construct } from 'constructs';
 import {
   DEFAULT_PAYLOAD_VERSION,
   ICAV2_WES_EVENT_SOURCE,
-  // DRAFT_STATUS,
   DRAFT_STATUS,
   ICAV2_WES_STATE_CHANGE_DETAIL_TYPE,
   READY_STATUS,
@@ -39,28 +38,6 @@ function buildIcav2AnalysisStateChangeEventPattern(): EventPattern {
           wildcard: `*--${WORKFLOW_NAME}--*`,
         },
       ],
-    },
-  };
-}
-
-function buildWorkflowManagerLegacyDraftEventPattern(): EventPattern {
-  return {
-    detailType: [WORKFLOW_RUN_STATE_CHANGE_DETAIL_TYPE],
-    source: [WORKFLOW_MANAGER_EVENT_SOURCE],
-    detail: {
-      workflowName: [WORKFLOW_NAME],
-      status: [DRAFT_STATUS],
-    },
-  };
-}
-
-function buildWorkflowManagerLegacyReadyEventPattern(): EventPattern {
-  return {
-    detailType: [WORKFLOW_RUN_STATE_CHANGE_DETAIL_TYPE],
-    source: [WORKFLOW_MANAGER_EVENT_SOURCE],
-    detail: {
-      workflowName: [WORKFLOW_NAME],
-      status: [READY_STATUS],
     },
   };
 }
@@ -113,28 +90,6 @@ function buildIcav2WesAnalysisStateChangeRule(
   });
 }
 
-function buildWorkflowRunStateChangeDraftLegacyEventRule(
-  scope: Construct,
-  props: BuildDraftRuleProps
-): Rule {
-  return buildEventRule(scope, {
-    ruleName: props.ruleName,
-    eventPattern: buildWorkflowManagerLegacyDraftEventPattern(),
-    eventBus: props.eventBus,
-  });
-}
-
-function buildWorkflowRunStateChangeReadyLegacyEventRule(
-  scope: Construct,
-  props: BuildReadyRuleProps
-): Rule {
-  return buildEventRule(scope, {
-    ruleName: props.ruleName,
-    eventPattern: buildWorkflowManagerLegacyReadyEventPattern(),
-    eventBus: props.eventBus,
-  });
-}
-
 function buildWorkflowRunStateChangeDraftEventRule(
   scope: Construct,
   props: BuildDraftRuleProps
@@ -166,16 +121,7 @@ export function buildAllEventRules(
   // Iterate over the eventBridgeNameList and create the event rules
   for (const ruleName of eventBridgeRuleNameList) {
     switch (ruleName) {
-      case 'wrscDraftLegacy': {
-        eventBridgeRuleObjects.push({
-          ruleName: ruleName,
-          ruleObject: buildWorkflowRunStateChangeDraftLegacyEventRule(scope, {
-            ruleName: ruleName,
-            eventBus: props.eventBus,
-          }),
-        });
-        break;
-      }
+      // Draft
       case 'wrscDraft': {
         eventBridgeRuleObjects.push({
           ruleName: ruleName,
@@ -186,16 +132,7 @@ export function buildAllEventRules(
         });
         break;
       }
-      case 'wrscReadyLegacy': {
-        eventBridgeRuleObjects.push({
-          ruleName: ruleName,
-          ruleObject: buildWorkflowRunStateChangeReadyLegacyEventRule(scope, {
-            ruleName: ruleName,
-            eventBus: props.eventBus,
-          }),
-        });
-        break;
-      }
+      // Ready
       case 'wrscReady': {
         eventBridgeRuleObjects.push({
           ruleName: ruleName,
@@ -206,6 +143,7 @@ export function buildAllEventRules(
         });
         break;
       }
+      // Post Running
       case 'icav2WesAnalysisStateChange': {
         eventBridgeRuleObjects.push({
           ruleName: ruleName,

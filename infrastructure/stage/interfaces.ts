@@ -5,6 +5,7 @@ Interfaces for the application
  */
 
 import { SsmParameterPaths, SsmParameterValues } from './ssm/interfaces';
+import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 
 /**
  * Stateful application stack interface.
@@ -29,14 +30,22 @@ export interface StatelessApplicationStackConfig {
   // SSM Parameter stuff
   ssmParameterPaths: SsmParameterPaths;
 
-  // Workflow manager stuff
-  isNewWorkflowManagerDeployed: boolean;
+  // Bucket stuff
+  refDataBucketName: string;
+  testDataBucketName: string;
+
+  // Stage Name
+  stageName: StageName;
 }
 
 /* Set versions */
 export type WorkflowVersionType = '4.4.4';
+export type PayloadVersionType = '2025.08.05';
 export type OraReferenceVersionType = '2.7.0';
 export type AnnotationVersionType = '44';
+
+/* Consts of types */
+export const payloadVersionList: PayloadVersionType[] = ['2025.08.05'];
 
 export interface Reference {
   name: string;
