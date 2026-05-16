@@ -61,7 +61,6 @@ def validate_engine_parameters(
     # Confirm that the outputUri and logsUri are a subset of the project prefix
     output_uri: str = engine_parameters.get("outputUri", "")
     logs_uri: str = engine_parameters.get("logsUri", "")
-    cache_uri: str = engine_parameters.get("cacheUri", "")
     pipeline_id: str = engine_parameters.get("pipelineId", "")
 
     # Validate the uris are correct
@@ -69,13 +68,10 @@ def validate_engine_parameters(
         return False, f"outputUri '{output_uri}' is not in the project context '{project_prefix}'"
     if not logs_uri.startswith(project_prefix):
         return False, f"logsUri '{logs_uri}' is not in the project context '{project_prefix}'"
-    if not cache_uri.startswith(project_prefix):
-        return False, f"cacheUri '{cache_uri}' is not in the project context '{project_prefix}'"
 
     # Ensure that the output uri, logs uri and cache uri are all distinct
-    for (uri_1, uri_2) in permutations([output_uri, logs_uri, cache_uri], 2):
-        if uri_1 == uri_2:
-            return False, f"output uri, logs uri and cache uri must all be distinct"
+    if output_uri == logs_uri:
+        return False, f"Output URI and logs uri must be distinct"
 
     # Confirm the pipeline is in the project
     try:
@@ -94,8 +90,6 @@ def validate_engine_parameters(
         return False, f"outputUri '{output_uri}' does not end with the portal run id '{portal_run_id}'"
     if not logs_uri.endswith(f"/{portal_run_id}/"):
         return False, f"logsUri '{logs_uri}' does not end with the portal run id '{portal_run_id}'"
-    if not cache_uri.endswith(f"/{portal_run_id}/"):
-        return False, f"cacheUri '{cache_uri}' does not end with the portal run id '{portal_run_id}'"
 
     return True, ""
 
@@ -112,10 +106,10 @@ def validate_inputs(
     :param project_id: The ICAv2 project id to validate against.
     :param project_prefix: The ICAv2 project prefix
     """
-    # Initalise the data uris list
+    # Initialise the data uris list
     data_uris = []
     # Get all fastq uris from the inputs
-    for fastq_obj in inputs.get("fastqListRows", []):
+    for fastq_obj in inputs.get("sequenceData", {}).get("fastqListRows", []):
         # We filter out 'None' values later
         data_uris.extend([
             fastq_obj.get("read1FileUri"),
@@ -151,7 +145,8 @@ def validate_inputs(
         data_uris
     ))
 
-    # Validate each fastq uri
+    # Validate each uri not part of the project or test/ref
+    # data buckets are available in the project contact via linking
     for data_uri in data_uris:
         # Try get the icav2 object by uri
         try:

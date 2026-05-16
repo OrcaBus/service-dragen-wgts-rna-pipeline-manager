@@ -115,7 +115,9 @@ def handler(event, context) -> Dict[str, bool]:
     :return:
     """
     # Get the event data
-    payload_version = event.get("payloadVersion", environ[DEFAULT_PAYLOAD_VERSION_ENV_VAR])
+    payload_version = event.get("payloadVersion", None)
+    if payload_version is None:
+        payload_version = environ[DEFAULT_PAYLOAD_VERSION_ENV_VAR]
     payload_data = event.get('data')
     workflow_run_id = event.get("workflowRunId", "")
     comment_error = event.get("addCommentOnError", False)
