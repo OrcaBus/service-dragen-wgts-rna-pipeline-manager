@@ -44,7 +44,7 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
   for (const lambdaObject of lambdaFunctions) {
     const sfnSubstitutionKey = `__${camelCaseToSnakeCase(lambdaObject.lambdaName)}_lambda_function_arn__`;
     definitionSubstitutions[sfnSubstitutionKey] =
-      lambdaObject.lambdaFunction.currentVersion.functionArn;
+      lambdaObject.lambdaFunction.latestVersion.functionArn;
   }
 
   /* Sfn Requirements */
@@ -60,8 +60,6 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
     definitionSubstitutions['__stack_source__'] = EVENT_SOURCE;
     definitionSubstitutions['__draft_event_status__'] = DRAFT_STATUS;
     definitionSubstitutions['__ready_event_status__'] = READY_STATUS;
-    definitionSubstitutions['__new_workflow_manager_is_deployed__'] =
-      props.isNewWorkflowManagerDeployed.toString();
   }
 
   /* SSM Parameter Substitutions */
@@ -142,8 +140,19 @@ function wireUpStateMachinePermissions(props: WireUpPermissionsProps): void {
 
   /* Allow the state machine to invoke the lambda function */
   for (const lambdaObject of lambdaFunctions) {
-    lambdaObject.lambdaFunction.currentVersion.grantInvoke(props.sfnObject);
+    lambdaObject.lambdaFunction.grantInvoke(props.sfnObject);
   }
+
+  NagSuppressions.addResourceSuppressions(
+    props.sfnObject,
+    [
+      {
+        id: 'AwsSolutions-IAM5',
+        reason: 'We need to give the sfn permission to grant any version of the lambda function',
+      },
+    ],
+    true
+  );
 }
 
 function buildStepFunction(scope: Construct, props: BuildStepFunctionProps): StepFunctionObject {
@@ -202,7 +211,6 @@ export function buildAllStepFunctions(
         lambdaObjects: props.lambdaObjects,
         eventBus: props.eventBus,
         ssmParameterPaths: props.ssmParameterPaths,
-        isNewWorkflowManagerDeployed: props.isNewWorkflowManagerDeployed,
       })
     );
   }

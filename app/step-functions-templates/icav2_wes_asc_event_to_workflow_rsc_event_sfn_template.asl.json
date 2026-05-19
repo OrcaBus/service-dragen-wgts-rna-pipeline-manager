@@ -37,21 +37,10 @@
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "Is new workflow manager deployed",
+      "Next": "Put WRU Event",
       "Assign": {
         "workflowRunUpdateEvent": "{% $states.result.Payload.workflowRunUpdateEvent %}"
       }
-    },
-    "Is new workflow manager deployed": {
-      "Type": "Choice",
-      "Choices": [
-        {
-          "Next": "Put WRU Event",
-          "Condition": "{% ${__new_workflow_manager_is_deployed__} %}",
-          "Comment": "New workflow manager deployed"
-        }
-      ],
-      "Default": "Put WRSC Event Legacy"
     },
     "Put WRU Event": {
       "Type": "Task",
@@ -61,21 +50,6 @@
           {
             "Detail": "{% $workflowRunUpdateEvent %}",
             "DetailType": "${__workflow_run_update_event_detail_type__}",
-            "EventBusName": "${__event_bus_name__}",
-            "Source": "${__stack_source__}"
-          }
-        ]
-      },
-      "End": true
-    },
-    "Put WRSC Event Legacy": {
-      "Type": "Task",
-      "Resource": "arn:aws:states:::events:putEvents",
-      "Arguments": {
-        "Entries": [
-          {
-            "Detail": "{% /* Start with workflow run update event and restructure */\n$workflowRunUpdateEvent ~>\n/* Renamed libraries to linkedLibraries using the transform method */\n| $ | {\"linkedLibraries\": libraries}, [\"libraries\"] | ~>\n/* Renamed workflowName and workflowVersion using the transform method */\n| $ | {\"workflowName\": workflow.name, \"workflowVersion\": workflow.version}, [\"workflow\"] |\n %}",
-            "DetailType": "${__workflow_run_state_change_event_detail_type__}",
             "EventBusName": "${__event_bus_name__}",
             "Source": "${__stack_source__}"
           }

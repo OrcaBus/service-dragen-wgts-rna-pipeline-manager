@@ -1,10 +1,17 @@
-import { LambdaInput, lambdaNameList, LambdaObject, lambdaRequirementsMap } from './interfaces';
+import {
+  BuildAllLambdaProps,
+  LambdaInput,
+  lambdaNameList,
+  LambdaObject,
+  lambdaRequirementsMap,
+} from './interfaces';
 import { PythonUvFunction } from '@orcabus/platform-cdk-constructs/lambda';
 import {
   LAMBDA_DIR,
   SCHEMA_REGISTRY_NAME,
   SSM_PARAMETER_PATH_PREFIX,
   SSM_SCHEMA_ROOT,
+  WORKFLOW_NAME,
 } from '../constants';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Duration } from 'aws-cdk-lib';
@@ -28,8 +35,9 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
     index: lambdaNameToSnakeCase + '.py',
     handler: 'handler',
     timeout: Duration.seconds(60),
-    memorySize: 2048,
+    memorySize: lambdaRequirements.needsHigherMemory ? 512 : undefined,
     includeOrcabusApiToolsLayer: lambdaRequirements.needsOrcabusApiTools,
+    includeIcav2Layer: lambdaRequirements.needsIcav2Tools,
   });
 
   // AwsSolutions-IAM4 - We need to add this for the lambda to work
@@ -70,6 +78,20 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
     );
   }
 
+  // Needs Workflow Env vars
+  if (lambdaRequirements.needsWorkflowEnvVars) {
+    lambdaFunction.addEnvironment('WORKFLOW_NAME', WORKFLOW_NAME);
+  }
+
+  /*
+  Do we need the bucket env vars?
+  */
+  // Needs bucket env vars
+  if (lambdaRequirements.needsBucketEnvVars) {
+    lambdaFunction.addEnvironment('REF_DATA_BUCKET_NAME', props.refDataBucketName);
+    lambdaFunction.addEnvironment('TEST_DATA_BUCKET_NAME', props.testDataBucketName);
+  }
+
   /*
     For the schema validation lambdas we need to give them the access to the schema
     */
@@ -88,8 +110,8 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
     const draftSchemaName: SchemaNames = 'completeDataDraft';
     lambdaFunction.addEnvironment('SSM_REGISTRY_NAME', path.join(SSM_SCHEMA_ROOT, 'registry'));
     lambdaFunction.addEnvironment(
-      'SSM_SCHEMA_NAME',
-      path.join(SSM_SCHEMA_ROOT, camelCaseToKebabCase(draftSchemaName), 'latest')
+      'SSM_SCHEMA_PATH',
+      path.join(SSM_SCHEMA_ROOT, camelCaseToKebabCase(draftSchemaName))
     );
 
     /* Since we dont ask which schema, we give the lambda access to all schemas in the registry */
@@ -113,13 +135,14 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
   };
 }
 
-export function buildAllLambdas(scope: Construct): LambdaObject[] {
+export function buildAllLambdas(scope: Construct, props: BuildAllLambdaProps): LambdaObject[] {
   // Iterate over lambdaLayerToMapping and create the lambda functions
   const lambdaObjects: LambdaObject[] = [];
   for (const lambdaName of lambdaNameList) {
     lambdaObjects.push(
       buildLambda(scope, {
         lambdaName: lambdaName,
+        ...props,
       })
     );
   }

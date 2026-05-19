@@ -20,11 +20,12 @@ import {
   ORA_VERSION_TO_DEFAULT_ORA_REFERENCE_PATHS_MAP,
   SSM_PARAMETER_PATH_PREFIX_INPUTS_BY_WORKFLOW_VERSION,
   DEFAULT_WORKFLOW_INPUTS_BY_VERSION_MAP,
-  NEW_WORKFLOW_MANAGER_IS_DEPLOYED,
   WORKFLOW_VERSION_TO_DEFAULT_ANNOTATION_PATHS_MAP,
   ANNOTATION_VERSION_TO_ANNOTATION_PATHS_MAP,
   SSM_PARAMETER_PATH_PREFIX_ANNOTATION_VERSIONS_BY_WORKFLOW_VERSION,
   SSM_PARAMETER_PATH_PREFIX_ANNOTATION_REFERENCE_PATHS_BY_ANNOTATION_VERSION,
+  TEST_DATA_BUCKET_NAME,
+  REF_DATA_BUCKET_NAME,
 } from './constants';
 import { StatefulApplicationStackConfig, StatelessApplicationStackConfig } from './interfaces';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
@@ -114,7 +115,11 @@ export const getStatelessStackProps = (stage: StageName): StatelessApplicationSt
     // SSM Parameter Paths
     ssmParameterPaths: getSsmParameterPaths(),
 
-    // Is new workflow manager deployed
-    isNewWorkflowManagerDeployed: NEW_WORKFLOW_MANAGER_IS_DEPLOYED[stage],
+    // Bucket stuff
+    testDataBucketName: TEST_DATA_BUCKET_NAME,
+    refDataBucketName: REF_DATA_BUCKET_NAME,
+
+    // Stage
+    stageName: stage,
   };
 };
