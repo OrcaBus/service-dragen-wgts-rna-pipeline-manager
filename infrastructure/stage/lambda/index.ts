@@ -7,6 +7,7 @@ import {
 } from './interfaces';
 import { PythonUvFunction } from '@orcabus/platform-cdk-constructs/lambda';
 import {
+  DEFAULT_PAYLOAD_VERSION,
   LAMBDA_DIR,
   SCHEMA_REGISTRY_NAME,
   SSM_PARAMETER_PATH_PREFIX,
@@ -126,6 +127,14 @@ function buildLambda(scope: Construct, props: LambdaInput): LambdaObject {
       ],
       true
     );
+
+    /*
+    Special if the lambdaName is 'validateDraftCompleteSchema', we need to add in the ssm parameters
+    to the REGISTRY_NAME and SCHEMA_PATH
+   */
+    if (props.lambdaName === 'validateDraftCompleteSchema') {
+      lambdaFunction.addEnvironment('DEFAULT_PAYLOAD_VERSION', DEFAULT_PAYLOAD_VERSION);
+    }
   }
 
   /* Return the function */
