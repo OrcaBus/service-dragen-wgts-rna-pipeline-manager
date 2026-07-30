@@ -24,7 +24,7 @@
           "payloadVersion": "{% $payload.version ? $payload.version : null %}",
           "data": "{% $payloadData %}",
           "workflowRunId": "{% $workflowRunId %}",
-          "addCommentOnError": true
+          "addCommentOnError": false
         }
       },
       "Retry": [
@@ -47,21 +47,23 @@
       "Type": "Choice",
       "Choices": [
         {
-          "Next": "Post Schema Validation",
+          "Next": "Run post-schema validation",
           "Condition": "{% $states.input.isValid %}",
           "Comment": "Draft is Valid"
         }
       ],
       "Default": "Pass"
     },
-    "Post Schema Validation": {
+    "Run post-schema validation": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
+      "Output": "{% $states.result.Payload %}",
       "Arguments": {
         "FunctionName": "${__post_schema_validation_lambda_function_arn__}",
         "Payload": {
           "data": "{% $payloadData %}",
-          "workflowRunId": "{% $workflowRunId %}"
+          "workflowRunId": "{% $workflowRunId %}",
+          "executionArn": "{% $states.context.Execution.Id %}"
         }
       },
       "Retry": [
@@ -78,17 +80,15 @@
           "JitterStrategy": "FULL"
         }
       ],
-      "Next": "Post Schema Validation Passing",
-      "Output": {
-        "isValid": "{% $states.result.Payload.isValid %}"
-      }
+      "Next": "Workflow Inputs are Valid"
     },
-    "Post Schema Validation Passing": {
+    "Workflow Inputs are Valid": {
       "Type": "Choice",
       "Choices": [
         {
           "Next": "Push READY Event",
-          "Condition": "{% $states.input.isValid %}"
+          "Condition": "{% $states.input.isValid %}",
+          "Comment": "Inputs are valid"
         }
       ],
       "Default": "Pass"
