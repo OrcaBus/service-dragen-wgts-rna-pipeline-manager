@@ -1,6 +1,9 @@
 import { PythonUvFunction } from '@orcabus/platform-cdk-constructs/lambda';
 
-export type LambdaName =
+/**
+ * Lambda function interface.
+ */
+export type LambdaNameList =
   // Draft Data lambdas
   | 'checkNtsmInternal'
   | 'getFastqIdListFromRgidList'
@@ -9,15 +12,22 @@ export type LambdaName =
   | 'getLibraries'
   | 'getMetadataTags'
   | 'getQcSummaryStatsFromRgidList'
-  // Validation lambda
+  // Payload comparison and WRU generation
+  | 'comparePayload'
+  | 'generateWruEventObjectWithMergedData'
+  | 'getMissingSchemaFields'
+  // Validation lambdas
   | 'validateDraftCompleteSchema'
   | 'postSchemaValidation'
+  // Commentary Functions
+  | 'addPopulateDraftComment'
   // Ready to ICAv2 WES lambdas
   | 'convertReadyEventInputsToIcav2WesEventInputs'
   // ICAv2 WES to WRSC Event lambdas
-  | 'convertIcav2WesEventToWruEvent';
+  | 'convertIcav2WesEventToWruEvent'
+  | 'addWesFailureComment';
 
-export const lambdaNameList: LambdaName[] = [
+export const lambdaNameList: LambdaNameList[] = [
   // Draft Data lambdas
   'checkNtsmInternal',
   'getFastqIdListFromRgidList',
@@ -26,28 +36,36 @@ export const lambdaNameList: LambdaName[] = [
   'getLibraries',
   'getMetadataTags',
   'getQcSummaryStatsFromRgidList',
-  // Validation lambda
+  // Payload comparison and WRU generation
+  'comparePayload',
+  'generateWruEventObjectWithMergedData',
+  'getMissingSchemaFields',
+  // Validation lambdas
   'validateDraftCompleteSchema',
   'postSchemaValidation',
+  // Commentary Functions
+  'addPopulateDraftComment',
   // Ready to ICAv2 WES lambdas
   'convertReadyEventInputsToIcav2WesEventInputs',
   // ICAv2 WES to WRSC Event lambdas
   'convertIcav2WesEventToWruEvent',
+  'addWesFailureComment',
 ];
 
 // Requirements interface for Lambda functions
 export interface LambdaRequirements {
   needsOrcabusApiTools?: boolean;
   needsIcav2Tools?: boolean;
-  needsSchemaRegistryAccess?: boolean;
-  needsSsmParametersAccess?: boolean;
   needsHigherMemory?: boolean;
-  needsBucketEnvVars?: boolean;
-  needsWorkflowEnvVars?: boolean;
+  needsSsmParametersAccess?: boolean;
+  needsSchemaRegistryAccess?: boolean;
+  needsExternalBucketInfo?: boolean;
+  needsWorkflowInfo?: boolean;
+  needsRepoUrl?: boolean;
 }
 
 // Lambda requirements mapping
-export const lambdaRequirementsMap: Record<LambdaName, LambdaRequirements> = {
+export const lambdaRequirementsMap: Record<LambdaNameList, LambdaRequirements> = {
   // Draft Data lambdas
   checkNtsmInternal: {
     needsOrcabusApiTools: true,
@@ -57,6 +75,7 @@ export const lambdaRequirementsMap: Record<LambdaName, LambdaRequirements> = {
   },
   getFastqListRowsFromRgidList: {
     needsOrcabusApiTools: true,
+    needsExternalBucketInfo: true,
   },
   getFastqRgidsFromLibraryId: {
     needsOrcabusApiTools: true,
@@ -70,36 +89,45 @@ export const lambdaRequirementsMap: Record<LambdaName, LambdaRequirements> = {
   getQcSummaryStatsFromRgidList: {
     needsOrcabusApiTools: true,
   },
+  // Payload comparison and WRU generation
+  comparePayload: {},
+  generateWruEventObjectWithMergedData: { needsOrcabusApiTools: true },
+  getMissingSchemaFields: { needsSchemaRegistryAccess: true, needsSsmParametersAccess: true },
+  // Validation lambdas
   validateDraftCompleteSchema: {
-    needsOrcabusApiTools: true,
     needsSchemaRegistryAccess: true,
     needsSsmParametersAccess: true,
+    needsOrcabusApiTools: true,
+    needsWorkflowInfo: true,
   },
   postSchemaValidation: {
     needsOrcabusApiTools: true,
     needsIcav2Tools: true,
-    needsHigherMemory: true,
-    needsBucketEnvVars: true,
-    needsWorkflowEnvVars: true,
+    needsExternalBucketInfo: true,
+    needsWorkflowInfo: true,
   },
-  // Convert ready to ICAv2 WES Event - no requirements
+  // Commentary Functions
+  addPopulateDraftComment: {
+    needsOrcabusApiTools: true,
+    needsWorkflowInfo: true,
+    needsRepoUrl: true,
+  },
+  // Ready to ICAv2 WES lambdas - no requirements
   convertReadyEventInputsToIcav2WesEventInputs: {},
-  // Needs OrcaBus toolkit to get the wrsc event
+  // ICAv2 WES to WRSC Event lambdas
   convertIcav2WesEventToWruEvent: {
     needsOrcabusApiTools: true,
   },
+  addWesFailureComment: {
+    needsOrcabusApiTools: true,
+    needsWorkflowInfo: true,
+  },
 };
 
-export interface BuildAllLambdaProps {
-  refDataBucketName: string;
-  testDataBucketName: string;
+export interface LambdaInput {
+  lambdaName: LambdaNameList;
 }
 
-export interface LambdaInput extends BuildAllLambdaProps {
-  lambdaName: LambdaName;
-}
-
-export interface LambdaObject {
-  lambdaName: LambdaName;
+export interface LambdaObject extends LambdaInput {
   lambdaFunction: PythonUvFunction;
 }

@@ -171,6 +171,6 @@ export const SSM_SCHEMA_ROOT = path.join(SSM_PARAMETER_PATH_PREFIX, 'schemas');
 // Used to group event rules and step functions
 export const STACK_PREFIX = 'orca-dragen-wgts-rna';
 
-/* Buckets */
+/* Bucket constants */
 export const TEST_DATA_BUCKET_NAME = TEST_DATA_BUCKET;
-export const REF_DATA_BUCKET_NAME = REFERENCE_DATA_BUCKET;
+export const REFERENCE_DATA_BUCKET_NAME = REFERENCE_DATA_BUCKET;

@@ -98,6 +98,12 @@ function createStateMachineDefinitionSubstitutions(props: BuildStepFunctionProps
     ] = props.ssmParameterPaths.annotationReferenceSsmRootPrefix;
   }
 
+  // Pipeline cache
+  definitionSubstitutions['__pipeline_cache_uri__'] =
+    `s3://${props.pipelineCacheBucketName}/${props.pipelineCachePrefix}`;
+  definitionSubstitutions['__pipeline_cache_bucket__'] = props.pipelineCacheBucketName;
+  definitionSubstitutions['__pipeline_cache_prefix__'] = props.pipelineCachePrefix;
+
   return definitionSubstitutions;
 }
 
@@ -131,7 +137,8 @@ function wireUpStateMachinePermissions(props: WireUpPermissionsProps): void {
       [
         {
           id: 'AwsSolutions-IAM5',
-          reason: 'We need to give access to the full prefix for the SSM parameter store',
+          reason:
+            'Wildcard covers SSM parameters under the workflow root prefix; individual parameter paths include dynamic workflow versions that cannot be enumerated at deploy time',
         },
       ],
       true
@@ -142,13 +149,13 @@ function wireUpStateMachinePermissions(props: WireUpPermissionsProps): void {
   for (const lambdaObject of lambdaFunctions) {
     lambdaObject.lambdaFunction.grantInvoke(props.sfnObject);
   }
-
   NagSuppressions.addResourceSuppressions(
     props.sfnObject,
     [
       {
         id: 'AwsSolutions-IAM5',
-        reason: 'We need to give the sfn permission to grant any version of the lambda function',
+        reason:
+          'We invoke $LATEST to allow redrives after Lambda bug fixes without redeploying the state machine',
       },
     ],
     true
@@ -211,6 +218,8 @@ export function buildAllStepFunctions(
         lambdaObjects: props.lambdaObjects,
         eventBus: props.eventBus,
         ssmParameterPaths: props.ssmParameterPaths,
+        pipelineCacheBucketName: props.pipelineCacheBucketName,
+        pipelineCachePrefix: props.pipelineCachePrefix,
       })
     );
   }

@@ -1,7 +1,7 @@
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { StateMachine } from 'aws-cdk-lib/aws-stepfunctions';
 
-import { LambdaName, LambdaObject } from '../lambda/interfaces';
+import { LambdaNameList, LambdaObject } from '../lambda/interfaces';
 import { SsmParameterPaths } from '../ssm/interfaces';
 
 /**
@@ -15,7 +15,7 @@ export type StateMachineName =
   // Ready-to-Submitted
   | 'readyEventToIcav2WesRequestEvent'
   // Post-submission event conversion
-  | 'icav2WesAscEventToWorkflowRscEvent';
+  | 'icav2WesEventToWrscEvent';
 
 export const stateMachineNameList: StateMachineName[] = [
   // Populate Draft Data
@@ -25,7 +25,7 @@ export const stateMachineNameList: StateMachineName[] = [
   // Ready-to-Submitted
   'readyEventToIcav2WesRequestEvent',
   // Post-submission event conversion
-  'icav2WesAscEventToWorkflowRscEvent',
+  'icav2WesEventToWrscEvent',
 ];
 
 // Requirements interface for Step Functions
@@ -45,6 +45,8 @@ export interface BuildStepFunctionProps extends StepFunctionInput {
   lambdaObjects: LambdaObject[];
   eventBus: IEventBus;
   ssmParameterPaths: SsmParameterPaths;
+  pipelineCacheBucketName: string;
+  pipelineCachePrefix: string;
 }
 
 export interface StepFunctionObject extends StepFunctionInput {
@@ -66,12 +68,12 @@ export const stepFunctionsRequirementsMap: Record<StateMachineName, StepFunction
   readyEventToIcav2WesRequestEvent: {
     needsEventPutPermission: true,
   },
-  icav2WesAscEventToWorkflowRscEvent: {
+  icav2WesEventToWrscEvent: {
     needsEventPutPermission: true,
   },
 };
 
-export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = {
+export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaNameList[]> = {
   populateDraftData: [
     'validateDraftCompleteSchema',
     'getLibraries',
@@ -81,8 +83,12 @@ export const stepFunctionToLambdasMap: Record<StateMachineName, LambdaName[]> = 
     'getFastqIdListFromRgidList',
     'getQcSummaryStatsFromRgidList',
     'checkNtsmInternal',
+    'addPopulateDraftComment',
+    'comparePayload',
+    'generateWruEventObjectWithMergedData',
+    'getMissingSchemaFields',
   ],
   validateDraftDataAndPutReadyEvent: ['validateDraftCompleteSchema', 'postSchemaValidation'],
   readyEventToIcav2WesRequestEvent: ['convertReadyEventInputsToIcav2WesEventInputs'],
-  icav2WesAscEventToWorkflowRscEvent: ['convertIcav2WesEventToWruEvent'],
+  icav2WesEventToWrscEvent: ['convertIcav2WesEventToWruEvent', 'addWesFailureComment'],
 };
