@@ -61,5 +61,6 @@ Follow [PM.DWR.4 — Running Workflow Validations](../PM.DWR.4/PM.DWR.4-RunningW
 ## Rollback
 
 If the new version has issues:
+
 1. Revert the `workflow-version` SSM parameter to the previous value
 2. Revert the CDK constants change and redeploy

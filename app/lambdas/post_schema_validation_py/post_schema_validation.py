@@ -168,11 +168,11 @@ def validate_inputs(
     # We may also have:
     # reference.tarball
     # oraReference
-    # annotation
+    # annotationFile
     ref_obj = inputs.get("reference", {})
     data_uris.append(ref_obj.get("tarball"))
     data_uris.append(inputs.get("oraReference"))
-    data_uris.append(inputs.get("annotation"))
+    data_uris.append(inputs.get("annotationFile"))
 
     # Remove empty / None values from list
     data_uris = [uri for uri in data_uris if uri]

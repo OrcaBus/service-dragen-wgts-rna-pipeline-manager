@@ -36,6 +36,7 @@ Follow [PM.DWR.1 — Manual Pipeline Execution](../PM.DWR.1/PM.DWR.1-ManualPipel
 ### 5. Document results
 
 Record validation results including:
+
 - Library ID tested
 - Workflow version
 - Execution time

@@ -13,16 +13,16 @@ Update SSM parameters that control the Dragen WGTS RNA pipeline behaviour (defau
 
 All parameters live under the SSM prefix: `/orcabus/workflows/dragen-wgts-rna/`
 
-| Parameter | Description |
-|---|---|
-| `workflow-version` | Current default workflow version |
-| `payload-version` | Current payload schema version |
-| `icav2-project-id` | Default ICAv2 project for the environment |
-| `logs-prefix` | S3 prefix for analysis logs |
-| `output-prefix` | S3 prefix for analysis outputs |
-| `pipeline-ids-by-workflow-version/<version>` | ICAv2 pipeline ID per version |
-| `inputs-by-workflow-version/<version>` | Default input overrides per version |
-| `reference-by-workflow-version/<version>` | Default reference path per version |
+| Parameter                                    | Description                               |
+| -------------------------------------------- | ----------------------------------------- |
+| `workflow-version`                           | Current default workflow version          |
+| `payload-version`                            | Current payload schema version            |
+| `icav2-project-id`                           | Default ICAv2 project for the environment |
+| `logs-prefix`                                | S3 prefix for analysis logs               |
+| `output-prefix`                              | S3 prefix for analysis outputs            |
+| `pipeline-ids-by-workflow-version/<version>` | ICAv2 pipeline ID per version             |
+| `inputs-by-workflow-version/<version>`       | Default input overrides per version       |
+| `reference-by-workflow-version/<version>`    | Default reference path per version        |
 
 ## Procedure
 
