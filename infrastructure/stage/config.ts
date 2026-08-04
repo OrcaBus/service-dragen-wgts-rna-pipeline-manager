@@ -24,14 +24,16 @@ import {
   ANNOTATION_VERSION_TO_ANNOTATION_PATHS_MAP,
   SSM_PARAMETER_PATH_PREFIX_ANNOTATION_VERSIONS_BY_WORKFLOW_VERSION,
   SSM_PARAMETER_PATH_PREFIX_ANNOTATION_REFERENCE_PATHS_BY_ANNOTATION_VERSION,
-  TEST_DATA_BUCKET_NAME,
-  REF_DATA_BUCKET_NAME,
 } from './constants';
 import { StatefulApplicationStackConfig, StatelessApplicationStackConfig } from './interfaces';
 import { StageName } from '@orcabus/platform-cdk-constructs/shared-config/accounts';
 import { ICAV2_PROJECT_ID } from '@orcabus/platform-cdk-constructs/shared-config/icav2';
 import { substituteBucketConstants } from './utils';
 import { SsmParameterPaths, SsmParameterValues } from './ssm/interfaces';
+import {
+  PIPELINE_CACHE_BUCKET,
+  PIPELINE_CACHE_PREFIX,
+} from '@orcabus/platform-cdk-constructs/shared-config/s3';
 
 /**
  * Stateful stack properties for the workflow.
@@ -115,11 +117,11 @@ export const getStatelessStackProps = (stage: StageName): StatelessApplicationSt
     // SSM Parameter Paths
     ssmParameterPaths: getSsmParameterPaths(),
 
-    // Bucket stuff
-    testDataBucketName: TEST_DATA_BUCKET_NAME,
-    refDataBucketName: REF_DATA_BUCKET_NAME,
-
     // Stage
     stageName: stage,
+
+    // Pipeline cache bucket
+    pipelineCacheBucketName: PIPELINE_CACHE_BUCKET[stage],
+    pipelineCachePrefix: PIPELINE_CACHE_PREFIX[stage],
   };
 };

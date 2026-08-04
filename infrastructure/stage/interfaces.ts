@@ -30,12 +30,12 @@ export interface StatelessApplicationStackConfig {
   // SSM Parameter stuff
   ssmParameterPaths: SsmParameterPaths;
 
-  // Bucket stuff
-  refDataBucketName: string;
-  testDataBucketName: string;
-
   // Stage Name
   stageName: StageName;
+
+  // Pipeline cache bucket
+  pipelineCacheBucketName: string;
+  pipelineCachePrefix: string;
 }
 
 /* Set versions */
