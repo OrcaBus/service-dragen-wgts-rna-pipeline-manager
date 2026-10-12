@@ -219,6 +219,15 @@
                 "Name": "${__default_project_id_ssm_parameter_name__}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "projectId": "{% $states.result.Parameter.Value %}"
@@ -253,6 +262,15 @@
                 "Name": "{% '${__workflow_id_to_pipeline_id_ssm_parameter_path_prefix__}/' & $detail.workflow.version %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "pipelineId": "{% $states.result.Parameter.Value %}"
@@ -287,6 +305,15 @@
                 "Name": "${__default_output_uri_prefix_ssm_parameter_name__}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "outputUri": "{% $states.result.Parameter.Value & $detail.portalRunId & '/' %}"
@@ -321,6 +348,15 @@
                 "Name": "${__default_logs_uri_prefix_ssm_parameter_name__}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "logsUri": "{% $states.result.Parameter.Value & $detail.portalRunId & '/' %}"
@@ -514,6 +550,15 @@
                 "Name": "{% '${__default_inputs_ssm_parameter_prefix__}/' & $detail.workflow.version %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "Output": "{% $parse($states.result.Parameter.Value) %}",
               "End": true
             }
@@ -555,6 +600,15 @@
                 "Name": "{% '${__default_reference_ssm_parameter_prefix__}/' & $detail.workflow.version %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "reference": "{% $parse($states.result.Parameter.Value) %}"
@@ -600,6 +654,15 @@
                 "Name": "{% '${__default_ora_reference_ssm_parameter_prefix__}/' & '${__default_ora_version__}' %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "oraReference": "{% $states.result.Parameter.Value %}"
@@ -631,6 +694,15 @@
                 "Name": "{% '${__default_annotation_version_by_workflow_version_ssm_parameter_prefix__}/' & $detail.workflow.version %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "Next": "Annotation File Path",
               "Output": {
                 "defaultAnnotationVersion": "{% $states.result.Parameter.Value %}"
@@ -649,6 +721,15 @@
                 "Name": "{% '${__default_annotation_path_by_annotation_version_ssm_parameter_prefix__}/' & $states.input.defaultAnnotationVersion %}"
               },
               "Resource": "arn:aws:states:::aws-sdk:ssm:getParameter",
+              "Retry": [
+                {
+                  "ErrorEquals": ["Ssm.ThrottlingException"],
+                  "IntervalSeconds": 10,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2,
+                  "MaxDelaySeconds": 60
+                }
+              ],
               "End": true,
               "Output": {
                 "annotationFile": "{% $states.result.Parameter.Value %}"
